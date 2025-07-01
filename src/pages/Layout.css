@@ -1,0 +1,84 @@
+body{
+  background: url('../public/bg.jpg');
+  margin: 0;
+  padding: 0;
+  background-size: cover;       /* Makes image cover entire area */
+  background-repeat: no-repeat; /* Prevents repeating */
+  background-position: center;  /* Keeps it centered */
+  background-attachment: fixed; /* Optional: keeps image fixed while scrolling */
+
+  /* filter: brightness(0.5); */
+}
+
+#labor-input, #agent-input, #contam-input{
+    display: flex;
+    /* margin-top: rem; */
+    /* background: rgba(0, 132, 255, 0.8); */
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(128, 0, 255, 0.7);
+}
+
+#labor-input form, #agent-input form, #contam-input form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* spacing between rows */
+}
+
+#labor-input form label{
+  text-align: start;
+}
+
+#title{
+    /* background: rgba(0, 132, 255, 0.8); */
+    text-align: center;
+    color: blanchedalmond;
+    padding: 0.5rem;
+}
+
+.content {
+  /* position: fixed; */
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* push it down by the navbar’s height */
+  padding-top: 120px;  
+  /* full viewport height minus navbar */
+  /* height: calc(100vh - 60px);  */
+}
+
+#dashboard {
+  margin: 15px;
+}
+
+#TaskLog{
+  background: rgba(128, 0, 255, 0.7);
+  color: blanchedalmond;
+}
+
+nav {
+  background-color: #50C;
+  padding: 1rem;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  color: #119;
+  z-index: 1000;
+}
+
+nav a {
+  color: white;
+  margin: 0 1rem;
+  text-decoration: none;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+/* main {
+  padding-top: 70px;
+} */
+
+
