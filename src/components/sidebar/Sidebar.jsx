@@ -21,16 +21,6 @@ export default function Sidebar() {
     return(
         <Box sx={{ display: 'flex' }}>
         <CssBaseline />
-        <AppBar
-            position="fixed"
-            sx={{ width: `calc(100% - ${drawerWidth}px)`, ml: `${drawerWidth}px` }}
-        >
-            <Toolbar>
-            <Typography variant="h6" noWrap component="div">
-                Pylogger
-            </Typography>
-            </Toolbar>
-        </AppBar>
         <Drawer
             sx={{
             width: drawerWidth,
