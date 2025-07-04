@@ -1,9 +1,25 @@
-class Account:
-    def __init__(self, code, name, account_type):
-        self.code = code                # e.g., 1000
-        self.name = name                # e.g., "Cash"
-        self.account_type = account_type  # e.g., "Asset"
-        self.balance = 0.0
+from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy import Column, Integer, String, Interval, Date, ForeignKey, Float
+from sqlalchemy.types import TypeDecorator
+from datetime import timedelta
+
+Base = declarative_base()
+
+class Account(Base):
+    __tablename__ = 'accounts'
+    account_id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(Integer)
+    name = Column(String)
+    account_type = Column(String)
+    balance = Column(Float)
+
+    def to_dict(self):
+        return{
+            'code': self.code,
+            'name': self.name,
+            'account_type': self.account_type,
+            'balance': self.balance
+        }
 
     def debit(self, amount):
         if self.account_type in ("Asset", "Expense"):
@@ -20,44 +36,31 @@ class Account:
     def __str__(self):
         return f"{self.code} - {self.name} ({self.account_type}): ${self.balance:.2f}"
         
-class Transaction:
-    def __init__(self, date, description):
-        self.date = date
-        self.description = description
-        self.entries = []
-
-    def add_entry(self, account, amount):
-        self.entries.append((account, amount))
         
-class JournalEntry:
-    def __init__(self, date, description):
-        self.date = date
-        self.description = description
-        self.debits = []
-        self.credits = []
+class JournalEntry(Base):
+    __tablename__ = 'journal_entries'
 
-    def add_debit(self, account, amount):
-        self.debits.append((account, amount))
+    id = Column(Integer, primary_key=True)
+    date = Column(Date)
+    description = Column(String)
 
-    def add_credit(self, account, amount):
-        self.credits.append((account, amount))
+    lines = relationship("JournalLine", back_populates="entry", cascade="all, delete-orphan")
 
-    def post(self):
-        total_debit = sum(amount for _, amount in self.debits)
-        total_credit = sum(amount for _, amount in self.credits)
+class JournalLine(Base):
+    __tablename__ = 'journal_lines'
 
-        if abs(total_debit - total_credit) > 0.01:
-            raise ValueError("Unbalanced entry: debits and credits must match.")
+    id = Column(Integer, primary_key=True)
+    journal_entry_id = Column(Integer, ForeignKey("journal_entries.id"))
+    account_id = Column(Integer, ForeignKey("accounts.account_id"))
+    debit = Column(Float, default=0.0)
+    credit = Column(Float, default=0.0)
+    memo = Column(String, nullable=True)
 
-        for account, amount in self.debits:
-            account.debit(amount)
+    entry = relationship("JournalEntry", back_populates="lines")
+    account = relationship("Account")
 
-        for account, amount in self.credits:
-            account.credit(amount)
-
-        print(f"Posted entry: {self.description}")
         
-class Ledger:
+class Ledger(Base):
     def __init__(self):
         self.accounts = []
         self.entries = []
@@ -69,22 +72,45 @@ class Ledger:
         journal_entry.post()
         self.entries.append(journal_entry)
         
-class Customer:
-    def __init__(self, name):
-        self.name = name
-        self.balance = 0
+class Customer(Base):
+    __tablename__ = "customers"
 
-    def invoice(self, amount):
-        self.balance += amount
-        
-class Invoice:
-    def __init__(self, customer, amount, due_date):
-        self.customer = customer
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    balance = Column(Float, default=0.0)
+
+    invoices = relationship("Invoice", back_populates="customer")
+
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+
+    id = Column(Integer, primary_key=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"))
+    date = Column(Date)
+    amount = Column(Float)
+    paid = Column(Integer, default=0)  # Use Boolean if supported
+    journal_entry_id = Column(Integer, ForeignKey("journal_entries.id"), nullable=True)
+
+    customer = relationship("Customer", back_populates="invoices")
+    journal_entry = relationship("JournalEntry", foreign_keys=[journal_entry_id])
+    
+    def __init__(self, invoice_id, customer_name, amount, date):
+        self.invoice_id = invoice_id
+        self.customer_name = customer_name
         self.amount = amount
-        self.due_date = due_date
+        self.date = date
         self.paid = False
+
+    def mark_paid(self):
+        self.paid = True
+
+    def __str__(self):
+        status = "Paid" if self.paid else "Unpaid"
+        return f"Invoice {self.invoice_id} - {self.customer_name} - ${self.amount:.2f} - {status}"
+
         
-class ChartOfAccounts:
+class ChartOfAccounts(Base):
     def __init__(self):
         self.accounts = {}
 
@@ -100,7 +126,7 @@ class ChartOfAccounts:
         for code in sorted(self.accounts):
             print(self.accounts[code])
             
-class TrialBalance:
+class TrialBalance(Base):
     def __init__(self, chart):
         self.chart = chart
 
@@ -156,20 +182,20 @@ chart_of_accounts = {
     5700: {"name": "Insurance Expense", "type": "Expense"},
 }
 
-class Invoice:
-    def __init__(self, invoice_id, customer_name, amount, date):
-        self.invoice_id = invoice_id
-        self.customer_name = customer_name
-        self.amount = amount
-        self.date = date
-        self.paid = False
+cash = Account(1000, "Cash", "Asset")
+checking_account = Account(1010, "Checking Account", "Asset")
+accounts_receivable = Account(1020, "Accounts Receivable", "Asset")
+inventory = Account(1030, "Inventory", "Asset")
+prepaid_expenses = Account(1040, "Prepaid Expenses", "Asset")
+equipment = Account(1500, "Equipment", "Asset")
+accumulated_depreciation = Account(1510, "Accumulated Depreciation", "Asset")
 
-    def mark_paid(self):
-        self.paid = True
+accounts_payable = Account(2000, "Accounts Payable", "Liability")
+notes_payable = Account(2100, "Notes Payable", "Liability")
+taxes_payable = Account(2200, "Taxes Payable", "Liability")
+unearned_revenue = Account(2300, "Unearned Revenue", "Liability")
 
-    def __str__(self):
-        status = "Paid" if self.paid else "Unpaid"
-        return f"Invoice {self.invoice_id} - {self.customer_name} - ${self.amount:.2f} - {status}"
+
         
 def issue_invoice(coa, invoices, invoice_id, customer_name, amount, date):
     invoice = Invoice(invoice_id, customer_name, amount, date)
@@ -203,7 +229,11 @@ def record_payment(coa, invoices, invoice_id, payment_date):
     invoice.mark_paid()
     print(f"Payment recorded: {invoice}")
     
-    
-Account(1000, "Cash", "Asset").debit(100000)
 
-print(Account(1000,"cash","Asset"))
+
+# print(Ledger)
+cash.debit(100000)
+notes_payable.credit(100000)
+
+
+print(cash, notes_payable)
