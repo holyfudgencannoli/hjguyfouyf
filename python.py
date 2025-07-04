@@ -15,17 +15,12 @@ class Account(Base):
 
     def to_dict(self):
         return{
+            'account_id': self.account_id
             'code': self.code,
             'name': self.name,
             'account_type': self.account_type,
             'balance': self.balance
         }
-
-    def debit(self, amount):
-        if self.account_type in ("Asset", "Expense"):
-            self.balance += amount
-        else:
-            self.balance -= amount
 
     def credit(self, amount):
         if self.account_type in ("Asset", "Expense"):
@@ -45,6 +40,16 @@ class JournalEntry(Base):
     description = Column(String)
 
     lines = relationship("JournalLine", back_populates="entry", cascade="all, delete-orphan")
+    
+    def to_dict(self):
+        return{
+            'id': self.id
+            'date': self.date
+            'description': self.description 
+        }
+        
+        def __str__(self):
+            return f"Entry #{self.id}: {self.description} on {self.date}"
 
 class JournalLine(Base):
     __tablename__ = 'journal_lines'
@@ -229,11 +234,47 @@ def record_payment(coa, invoices, invoice_id, payment_date):
     invoice.mark_paid()
     print(f"Payment recorded: {invoice}")
     
+cash = Account(
+    code: 1000
+    name: 'Cash'
+    account_type: 'Asset'
+    balance: 0
+)
 
+db_session = LocalSession()
+db_session.add(cash)
+db_session.commit()
+db_session.close()
 
-# print(Ledger)
-cash.debit(100000)
-notes_payable.credit(100000)
+@api_bp.route('/api/journals/debit', methods=['POST']):
 
+def debit(): 
+    db_session = LocalSession()
+    data = request.form
+    
+    accout_id =data.get('account_id ')
+    journal_entry_id = data.get()
+    debit = data.get()
+    memo = data.get()
+    
+    account = db_session.query(account).select(account_id)
+    
+    if account.accout_type == ("Asset" || "Expense"):
+        account.balance += debit
+    else:
+        account.balance -= debit
 
-print(cash, notes_payable)
+    
+
+    new_debit = JournalLine(
+        journal_entry_id = journal_entry_id
+        account_id  = account_id 
+        debit = debit 
+        memo = memo 
+        account=account
+    )
+    
+    db_session.add(new_debit)
+    db_session.commit()
+    
+    db_session.close()
