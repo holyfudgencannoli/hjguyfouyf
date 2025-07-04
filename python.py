@@ -257,7 +257,7 @@ def debit():
     debit = data.get()
     memo = data.get()
     
-    account = db_session.query(account).select(account_id)
+    account = db_session.query(account).get(account_id)
     
     if account.accout_type == ("Asset" || "Expense"):
         account.balance += debit
